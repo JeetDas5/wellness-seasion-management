@@ -25,12 +25,12 @@ export default function LoadingSpinner({
 
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <div className="text-center">
+      <div className="text-center px-4">
         <div
           className={`animate-spin rounded-full border-b-2 border-blue-600 ${sizeClasses[size]} mx-auto`}
         />
         {text && (
-          <p className={`mt-2 text-gray-600 ${textSizeClasses[size]}`}>
+          <p className={`mt-3 text-gray-600 ${textSizeClasses[size]} max-w-sm mx-auto`}>
             {text}
           </p>
         )}

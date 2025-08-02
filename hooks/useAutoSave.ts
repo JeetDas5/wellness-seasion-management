@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { handleApiError } from '@/utils/errorHandling';
 import toast from 'react-hot-toast';
 
 interface UseAutoSaveOptions {
@@ -67,10 +68,10 @@ export function useAutoSave({
       if (!isUnmountedRef.current) {
         setStatus('error');
         
-        // Show error toast
-        toast.error('Auto-save failed. Please save manually.', {
-          duration: 4000,
-          position: 'bottom-right',
+        // Handle the error with appropriate user feedback
+        handleApiError(error, {
+          customMessage: 'Auto-save failed. Please save manually.',
+          showToast: true
         });
         
         // Reset to idle after 5 seconds

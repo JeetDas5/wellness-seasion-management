@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, LoadingSpinner, ErrorMessage } from '@/components/ui';
 import AutoSaveIndicator from '@/components/ui/AutoSaveIndicator';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { handleApiError, apiRequest, formatValidationErrors } from '@/utils/errorHandling';
 import toast from 'react-hot-toast';
 
 interface SessionData {
@@ -20,6 +21,7 @@ interface SessionEditorProps {
 }
 
 interface FormErrors {
+  [key: string]: string | undefined;
   title?: string;
   tags?: string;
   json_file_url?: string;
@@ -48,19 +50,10 @@ export default function SessionEditor({
     if (!sessionId) return; // Only auto-save existing sessions
     
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/auto-save`, {
+      await apiRequest(`/api/sessions/${sessionId}/auto-save`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.message || 'Auto-save failed');
-      }
     } catch (error) {
       console.error('Auto-save error:', error);
       throw error;
@@ -116,8 +109,7 @@ export default function SessionEditor({
     
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/my-sessions/${sessionId}`);
-      const data = await response.json();
+      const data = await apiRequest(`/api/my-sessions/${sessionId}`);
       
       if (data.success && data.session) {
         const session = data.session;
@@ -128,11 +120,12 @@ export default function SessionEditor({
         });
         setTagsInput(session.tags?.join(', ') || '');
       } else {
-        toast.error('Failed to load session data');
+        throw new Error(data.message || 'Failed to load session data');
       }
     } catch (error) {
-      console.error('Error fetching session:', error);
-      toast.error('Failed to load session data');
+      handleApiError(error, {
+        customMessage: 'Failed to load session data. Please try again.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -229,7 +222,12 @@ export default function SessionEditor({
 
   const handleSaveAsDraft = async () => {
     if (!validateForm()) {
-      toast.error('Please fix the errors before saving');
+      const errorMessage = formatValidationErrors(
+        Object.fromEntries(
+          Object.entries(errors).filter(([_, value]) => value !== undefined)
+        ) as Record<string, string>
+      );
+      toast.error(errorMessage);
       return;
     }
 
@@ -242,18 +240,13 @@ export default function SessionEditor({
         const url = sessionId ? `/api/sessions/${sessionId}` : '/api/sessions';
         const method = sessionId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const data = await apiRequest(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             ...formData,
             status: 'draft'
           }),
         });
-
-        const data = await response.json();
         
         if (data.success) {
           toast.success(sessionId ? 'Draft updated successfully' : 'Draft saved successfully');
@@ -262,8 +255,9 @@ export default function SessionEditor({
         }
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+      handleApiError(error, {
+        customMessage: 'Failed to save draft. Please try again.'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -271,7 +265,12 @@ export default function SessionEditor({
 
   const handlePublish = async () => {
     if (!validateForm()) {
-      toast.error('Please fix the errors before publishing');
+      const errorMessage = formatValidationErrors(
+        Object.fromEntries(
+          Object.entries(errors).filter(([_, value]) => value !== undefined)
+        ) as Record<string, string>
+      );
+      toast.error(errorMessage);
       return;
     }
 
@@ -284,18 +283,13 @@ export default function SessionEditor({
         const url = sessionId ? `/api/sessions/${sessionId}` : '/api/sessions';
         const method = sessionId ? 'PUT' : 'POST';
         
-        const response = await fetch(url, {
+        const data = await apiRequest(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             ...formData,
             status: 'published'
           }),
         });
-
-        const data = await response.json();
         
         if (data.success) {
           toast.success(sessionId ? 'Session updated and published' : 'Session published successfully');
@@ -304,8 +298,9 @@ export default function SessionEditor({
         }
       }
     } catch (error) {
-      console.error('Error publishing session:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to publish session');
+      handleApiError(error, {
+        customMessage: 'Failed to publish session. Please try again.'
+      });
     } finally {
       setIsPublishing(false);
     }
@@ -313,10 +308,7 @@ export default function SessionEditor({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading session...</span>
-      </div>
+      <LoadingSpinner size="lg" text="Loading session data..." className="py-12" />
     );
   }
 
@@ -334,9 +326,9 @@ export default function SessionEditor({
         />
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Tags
-            <span className="text-gray-500 ml-1">(comma-separated, max 10)</span>
+            <span className="text-gray-500 ml-1 block sm:inline">(comma-separated, max 10)</span>
           </label>
           <input
             type="text"
@@ -344,22 +336,27 @@ export default function SessionEditor({
             onChange={(e) => handleTagsChange(e.target.value)}
             placeholder="yoga, meditation, wellness, relaxation"
             className={`
-              w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors
+              w-full px-3 py-3 sm:py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base sm:text-sm touch-manipulation
               ${errors.tags 
                 ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                : 'border-gray-300'
+                : 'border-gray-300 hover:border-gray-400'
               }
             `}
           />
           {errors.tags && (
-            <p className="mt-1 text-sm text-red-600">{errors.tags}</p>
+            <p className="mt-2 text-sm text-red-600 flex items-start">
+              <svg className="h-4 w-4 text-red-500 mt-0.5 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span>{errors.tags}</span>
+            </p>
           )}
           {formData.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               {formData.tags.map((tag, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                 >
                   {tag}
                 </span>
@@ -386,13 +383,13 @@ export default function SessionEditor({
           />
         )}
 
-        <div className="flex gap-4 pt-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
           <Button
             variant="secondary"
             onClick={handleSaveAsDraft}
             loading={isSaving}
             disabled={isPublishing}
-            className="flex-1"
+            className="flex-1 order-2 sm:order-1"
           >
             Save as Draft
           </Button>
@@ -402,7 +399,7 @@ export default function SessionEditor({
             onClick={handlePublish}
             loading={isPublishing}
             disabled={isSaving}
-            className="flex-1"
+            className="flex-1 order-1 sm:order-2"
           >
             Publish Session
           </Button>

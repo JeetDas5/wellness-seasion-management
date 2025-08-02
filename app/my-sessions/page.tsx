@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { PageLayout, SessionList, Button } from '@/components';
+import { PageLayout, SessionList, Button, LoadingSpinner, ErrorBoundary } from '@/components';
 import { useAuth } from '@/hooks/useAuth';
 import { useMySession } from '@/hooks/useMySession';
 
@@ -14,10 +14,7 @@ export default function MySessionsPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+        <LoadingSpinner size="lg" text="Loading your sessions..." />
       </div>
     );
   }
@@ -39,83 +36,53 @@ export default function MySessionsPage() {
   const publishedSessions = sessions.filter(session => session.status === 'published');
 
   return (
-    <PageLayout
-      title="My Sessions"
-      currentUser={user}
-      onLogout={logout}
-    >
-      <div className="space-y-8">
+    <ErrorBoundary>
+      <PageLayout
+        title="My Sessions"
+        currentUser={user}
+        onLogout={logout}
+      >
+      <div className="space-y-6 sm:space-y-8">
         {/* Header Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex justify-between items-start">
-            <div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            <div className="flex-1 min-w-0">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">
                 My Wellness Sessions
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm sm:text-base">
                 Manage your wellness sessions. Edit drafts, update published content, or create new sessions.
               </p>
             </div>
             <Button
               variant="primary"
               onClick={handleCreateSession}
+              className="w-full sm:w-auto flex-shrink-0"
             >
               Create New Session
             </Button>
           </div>
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Error loading your sessions
-                </h3>
-                <p className="mt-1 text-sm text-red-700">{error}</p>
-                <div className="mt-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={refetch}
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Draft Sessions Section */}
         {(draftSessions.length > 0 || (!sessionsLoading && sessions.length === 0)) && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mr-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mr-3 flex-shrink-0">
                   Draft
                 </span>
-                Draft Sessions ({draftSessions.length})
+                <span className="truncate">Draft Sessions ({draftSessions.length})</span>
               </h3>
             </div>
             
             <SessionList
               sessions={draftSessions}
               loading={sessionsLoading}
+              error={error}
+              onRetry={refetch}
               emptyMessage="No draft sessions yet. Start creating a new session to save it as a draft first."
               showAuthor={false}
               onEdit={handleEditSession}
@@ -126,18 +93,20 @@ export default function MySessionsPage() {
         {/* Published Sessions Section */}
         {(publishedSessions.length > 0 || (!sessionsLoading && sessions.length === 0)) && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-3 flex-shrink-0">
                   Published
                 </span>
-                Published Sessions ({publishedSessions.length})
+                <span className="truncate">Published Sessions ({publishedSessions.length})</span>
               </h3>
             </div>
             
             <SessionList
               sessions={publishedSessions}
               loading={sessionsLoading}
+              error={error}
+              onRetry={refetch}
               emptyMessage="No published sessions yet. Publish your drafts to share them with the community."
               showAuthor={false}
               onEdit={handleEditSession}
@@ -178,6 +147,7 @@ export default function MySessionsPage() {
           </div>
         )}
       </div>
-    </PageLayout>
+      </PageLayout>
+    </ErrorBoundary>
   );
 }

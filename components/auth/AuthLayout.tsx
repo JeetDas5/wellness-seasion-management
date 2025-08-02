@@ -19,11 +19,11 @@ export default function AuthLayout({
   toggleLink,
 }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo/Brand */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Wellness Platform
           </h1>
           <p className="text-sm text-gray-600">
@@ -32,9 +32,9 @@ export default function AuthLayout({
         </div>
 
         {/* Auth Form Container */}
-        <div className="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-6 sm:py-8 px-4 sm:px-10 shadow-lg sm:rounded-lg border border-gray-200">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 text-center">
               {title}
             </h2>
             {subtitle && (
@@ -60,7 +60,7 @@ export default function AuthLayout({
               <div className="mt-6 text-center">
                 <Link
                   href={toggleLink}
-                  className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                  className="text-blue-600 hover:text-blue-500 active:text-blue-700 font-medium transition-colors touch-manipulation inline-block py-2 px-4 rounded-md hover:bg-blue-50"
                 >
                   {toggleText}
                 </Link>

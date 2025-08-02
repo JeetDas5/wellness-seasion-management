@@ -76,12 +76,12 @@ export default function EditSessionPage({ params }: EditSessionPageProps) {
 
   return (
     <PageLayout title="Edit Session">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">
             Edit Session
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Update your wellness session. You can save changes as a draft or publish them immediately.
           </p>
         </div>

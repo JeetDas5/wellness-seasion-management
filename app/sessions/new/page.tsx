@@ -71,12 +71,12 @@ export default function NewSessionPage() {
 
   return (
     <PageLayout title="Create New Session">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 break-words">
             Create New Session
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             Create a new wellness session to share with the community. You can save it as a draft first or publish it immediately.
           </p>
         </div>

@@ -7,7 +7,11 @@ export async function GET(request: NextRequest) {
   await connectDB();
   const userId = await getUser(request);
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ 
+      success: false,
+      message: "Authentication required",
+      code: "UNAUTHORIZED"
+    }, { status: 401 });
   }
 
   try {
@@ -15,17 +19,11 @@ export async function GET(request: NextRequest) {
       .populate('userId', 'name email createdAt')
       .sort({ createdAt: -1 });
     
-    if (!sessions || sessions.length === 0) {
-      return NextResponse.json(
-        { success: true, sessions: [] },
-        { status: 200 }
-      );
-    }
-    
     return NextResponse.json(
       {
         success: true,
-        sessions,
+        sessions: sessions || [],
+        message: sessions.length === 0 ? "No published sessions found" : undefined
       },
       { status: 200 }
     );
@@ -33,7 +31,8 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching sessions:", error);
     return NextResponse.json({ 
       success: false, 
-      message: "Failed to fetch sessions" 
+      message: "Unable to fetch sessions. Please try again later.",
+      code: "FETCH_SESSIONS_ERROR"
     }, { status: 500 });
   }
 }

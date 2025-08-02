@@ -31,7 +31,7 @@ export default function AutoSaveIndicator({ status, lastSaved }: AutoSaveIndicat
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <span className="text-sm">Saving...</span>
+            <span className="text-xs sm:text-sm">Saving...</span>
           </div>
         );
       case 'saved':
@@ -51,7 +51,7 @@ export default function AutoSaveIndicator({ status, lastSaved }: AutoSaveIndicat
                 d="M5 13l4 4L19 7"
               />
             </svg>
-            <span className="text-sm">
+            <span className="text-xs sm:text-sm">
               Saved {lastSaved ? formatLastSaved(lastSaved) : ''}
             </span>
           </div>
@@ -73,7 +73,7 @@ export default function AutoSaveIndicator({ status, lastSaved }: AutoSaveIndicat
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span className="text-sm">Save failed</span>
+            <span className="text-xs sm:text-sm">Save failed</span>
           </div>
         );
       default:
@@ -96,7 +96,7 @@ export default function AutoSaveIndicator({ status, lastSaved }: AutoSaveIndicat
   };
 
   return (
-    <div className="flex items-center justify-end py-2">
+    <div className="flex items-center justify-center sm:justify-end py-2 px-2 sm:px-0">
       {getStatusDisplay()}
     </div>
   );

@@ -63,7 +63,7 @@ export default function ErrorMessage({
             <div className="mt-3">
               <button
                 onClick={onRetry}
-                className="text-sm bg-red-100 text-red-800 px-3 py-1.5 rounded-md hover:bg-red-200 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="text-sm bg-red-100 text-red-800 px-3 py-2 rounded-md hover:bg-red-200 active:bg-red-300 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[36px]"
               >
                 {retryText}
               </button>

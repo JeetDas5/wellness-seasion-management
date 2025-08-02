@@ -17,6 +17,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Wellness Session Platform",
   description: "A secure platform for discovering and creating wellness sessions",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Wellness Platform',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#3B82F6',
 };
 
 export default function RootLayout({
