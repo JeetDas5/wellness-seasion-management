@@ -4,23 +4,34 @@ import { verifyToken } from "./lib/auth";
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
   const pathname = req.nextUrl.pathname;
-  if (!token) {
-    if (pathname === "/register" || pathname === "/login") {
-      return NextResponse.next();
+  
+  // Allow access to login and register pages without token
+  if (pathname === "/register" || pathname === "/login") {
+    if (token) {
+      try {
+        const isVerified = verifyToken(token);
+        if (isVerified) {
+          // User is authenticated, redirect to dashboard
+          return NextResponse.redirect(new URL("/", req.url));
+        }
+      } catch (error) {
+        console.error("Error verifying token:", error);
+      }
     }
+    return NextResponse.next();
+  }
+  
+  // For protected routes, check if user has valid token
+  if (!token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
+  
   try {
-    if (token) {
-      const isVerified = await verifyToken(token);
-      if (!isVerified) {
-        return NextResponse.redirect(new URL("/login", req.url));
-      }
-      if (pathname === "/login" || pathname === "/register") {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
-      return NextResponse.next();
+    const isVerified = verifyToken(token);
+    if (!isVerified) {
+      return NextResponse.redirect(new URL("/login", req.url));
     }
+    return NextResponse.next();
   } catch (error) {
     console.error("Error verifying token:", error);
     return NextResponse.redirect(new URL("/login", req.url));

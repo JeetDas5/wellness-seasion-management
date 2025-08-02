@@ -1,9 +1,18 @@
-import React from 'react'
+'use client'
 
-const RegisterPage = () => {
+import React from 'react';
+import AuthLayout from '@/components/auth/AuthLayout';
+import RegisterForm from '@/components/auth/RegisterForm';
+
+export default function RegisterPage() {
   return (
-    <div>RegisterPage</div>
-  )
+    <AuthLayout
+      title="Create Account"
+      subtitle="Join our wellness community and start creating sessions."
+      toggleText="Already have an account? Sign in"
+      toggleLink="/login"
+    >
+      <RegisterForm />
+    </AuthLayout>
+  );
 }
-
-export default RegisterPage
