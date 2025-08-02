@@ -3,7 +3,10 @@ import Session from "@/models/Session";
 import { getUser } from "@/utils/getUser";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   await connectDB();
   const userId = await getUser(request);
   if (!userId) {
@@ -11,17 +14,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const sessions = await Session.find({ userId });
-    if (!sessions || sessions.length === 0) {
-      return NextResponse.json(
-        { message: "No sessions found" },
-        { status: 404 }
-      );
+    const { id } = await params;
+    const sessionId = id;
+    const session = await Session.findOne({ _id: sessionId, userId });
+    if (!session) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
     return NextResponse.json(
       {
-        message: "User sessions retrieved successfully",
-        sessions,
+        message: "Session retrieved successfully",
+        session,
       },
       { status: 200 }
     );

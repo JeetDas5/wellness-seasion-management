@@ -11,25 +11,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const sessions = await Session.find({ userId });
+    const sessions = await Session.find({ status: "published" }).sort({
+      createdAt: -1,
+    });
     if (!sessions || sessions.length === 0) {
       return NextResponse.json(
-        { message: "No sessions found" },
+        { message: "No published sessions found" },
         { status: 404 }
       );
     }
     return NextResponse.json(
       {
-        message: "User sessions retrieved successfully",
+        message: "Published sessions retrieved successfully",
         sessions,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error fetching user sessions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user sessions" },
-      { status: 500 }
-    );
+    console.error("Error fetching sessions:", error);
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
