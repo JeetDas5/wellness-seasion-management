@@ -10,7 +10,10 @@ export async function GET(
   await connectDB();
   const userId = await getUser(request);
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ 
+      success: false, 
+      message: "Unauthorized" 
+    }, { status: 401 });
   }
 
   try {
@@ -18,10 +21,14 @@ export async function GET(
     const sessionId = id;
     const session = await Session.findOne({ _id: sessionId, userId });
     if (!session) {
-      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+      return NextResponse.json({ 
+        success: false, 
+        message: "Session not found" 
+      }, { status: 404 });
     }
     return NextResponse.json(
       {
+        success: true,
         message: "Session retrieved successfully",
         session,
       },
@@ -30,7 +37,10 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching user sessions:", error);
     return NextResponse.json(
-      { error: "Failed to fetch user sessions" },
+      { 
+        success: false, 
+        message: "Failed to fetch user sessions" 
+      },
       { status: 500 }
     );
   }

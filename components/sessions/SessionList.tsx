@@ -1,5 +1,6 @@
 import React from 'react';
 import SessionCard from './SessionCard';
+import { LoadingSpinner, ErrorMessage } from '@/components/ui';
 
 interface User {
   _id: string;
@@ -25,6 +26,8 @@ interface SessionListProps {
   showAuthor?: boolean;
   onEdit?: (sessionId: string) => void;
   loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export default function SessionList({ 
@@ -32,23 +35,41 @@ export default function SessionList({
   emptyMessage, 
   showAuthor = true, 
   onEdit,
-  loading = false 
+  loading = false,
+  error = null,
+  onRetry
 }: SessionListProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse">
-            <div className="h-6 bg-gray-200 rounded mb-4"></div>
-            <div className="flex gap-2 mb-4">
-              <div className="h-5 bg-gray-200 rounded-full w-16"></div>
-              <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+      <div className="space-y-6">
+        <LoadingSpinner size="lg" text="Loading sessions..." className="py-12" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded mb-4"></div>
+              <div className="flex gap-2 mb-4">
+                <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+              </div>
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
             </div>
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage
+        title="Failed to load sessions"
+        message={error}
+        onRetry={onRetry}
+        retryText="Reload Sessions"
+        variant="card"
+        className="my-8"
+      />
     );
   }
 

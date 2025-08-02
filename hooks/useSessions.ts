@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { handleApiError, apiRequest, retryRequest } from '@/utils/errorHandling';
 
 interface User {
   _id: string;
@@ -36,19 +36,23 @@ export function useSessions(): UseSessionsReturn {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/sessions');
-      const data = await response.json();
+      const data = await retryRequest(
+        () => apiRequest('/api/sessions'),
+        3, // Retry up to 3 times for session data
+        1000 // 1 second delay
+      );
 
       if (data.success) {
         setSessions(data.sessions || []);
       } else {
-        setError(data.message || 'Failed to fetch sessions');
+        const errorMessage = data.message || 'Failed to fetch sessions';
+        setError(errorMessage);
       }
     } catch (err) {
-      const errorMessage = 'Failed to fetch sessions';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Sessions fetch error:', err);
+      const apiError = handleApiError(err, {
+        customMessage: 'Unable to load sessions. Please try again.'
+      });
+      setError(apiError.message);
     } finally {
       setLoading(false);
     }

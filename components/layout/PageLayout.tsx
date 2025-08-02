@@ -13,6 +13,7 @@ interface PageLayoutProps {
   showNavigation?: boolean;
   currentUser?: User;
   onLogout?: () => void;
+  loading?: boolean;
 }
 
 export default function PageLayout({
@@ -21,11 +22,12 @@ export default function PageLayout({
   showNavigation = true,
   currentUser,
   onLogout,
+  loading = false,
 }: PageLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {showNavigation && currentUser && onLogout && (
-        <Navigation currentUser={currentUser} onLogout={onLogout} />
+        <Navigation currentUser={currentUser} onLogout={onLogout} loading={loading} />
       )}
       
       <main className={showNavigation ? 'pt-0' : 'pt-8'}>

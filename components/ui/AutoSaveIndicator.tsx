@@ -2,7 +2,7 @@ import React from 'react';
 
 interface AutoSaveIndicatorProps {
   status: 'idle' | 'saving' | 'saved' | 'error';
-  lastSaved?: Date;
+  lastSaved?: Date | null;
 }
 
 export default function AutoSaveIndicator({ status, lastSaved }: AutoSaveIndicatorProps) {

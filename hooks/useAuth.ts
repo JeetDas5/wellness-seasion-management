@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import { handleApiError, apiRequest, retryRequest } from '@/utils/errorHandling';
 
 interface User {
   _id: string;
@@ -31,22 +31,26 @@ export function useAuth(): UseAuthReturn {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/auth/me');
-      const data = await response.json();
+      const data = await retryRequest(
+        () => apiRequest('/api/auth/me'),
+        2, // Retry up to 2 times
+        1000 // 1 second delay
+      );
 
       if (data.success) {
         setUser(data.user);
       } else {
-        setError(data.message);
-        if (response.status === 401) {
+        setError(data.message || 'Failed to fetch user data');
+        if (data.status === 401) {
           router.push('/login');
         }
       }
     } catch (err) {
-      const errorMessage = 'Failed to fetch user data';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      console.error('Auth error:', err);
+      const apiError = handleApiError(err, {
+        showToast: false, // Don't show toast for auth checks
+        onAuthError: () => router.push('/login')
+      });
+      setError(apiError.message);
     } finally {
       setLoading(false);
     }
@@ -54,20 +58,19 @@ export function useAuth(): UseAuthReturn {
 
   const logout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
+      await apiRequest('/api/auth/logout', {
         method: 'POST',
       });
 
-      if (response.ok) {
-        setUser(null);
-        toast.success('Logged out successfully');
-        router.push('/login');
-      } else {
-        toast.error('Failed to logout');
-      }
+      setUser(null);
+      router.push('/login');
     } catch (err) {
-      toast.error('Failed to logout');
-      console.error('Logout error:', err);
+      handleApiError(err, {
+        customMessage: 'Failed to logout properly. You have been logged out locally.'
+      });
+      // Still log out locally even if server request fails
+      setUser(null);
+      router.push('/login');
     }
   };
 
