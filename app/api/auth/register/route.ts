@@ -3,41 +3,54 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { authValidationSchemas, validateForm, sanitizeFormData, createServerValidationResponse } from "@/utils/validation";
 
 export async function POST(request: NextRequest) {
   await connectDB();
   try {
-    const { name, email, password } = await request.json();
-    if (!name || !email || !password) {
+    const body = await request.json();
+    const { name, email, password } = body;
+
+    // Sanitize input data
+    const sanitizedData = sanitizeFormData({ name, email, password });
+
+    // Validate input using the same schema as client-side
+    const validation = validateForm(sanitizedData, authValidationSchemas.register);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { success: false, error: "Name, email, and password are required." },
-        { status: 400 }
-      );
-    }
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: "User with this email already exists." },
+        createServerValidationResponse(validation.errors),
         { status: 400 }
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const existingUser = await User.findOne({ email: sanitizedData.email.toLowerCase() });
+    if (existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "An account with this email already exists",
+          errors: { email: "An account with this email already exists" }
+        },
+        { status: 400 }
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(sanitizedData.password, 10);
     if (!hashedPassword) {
       return NextResponse.json(
-        { success: false, error: "Failed to hash password." },
+        { success: false, message: "Failed to hash password." },
         { status: 500 }
       );
     }
 
     const newUser = await User.create({
-      name,
-      email,
+      name: sanitizedData.name,
+      email: sanitizedData.email.toLowerCase(),
       password: hashedPassword,
     });
     if (!newUser) {
       return NextResponse.json(
-        { success: false, error: "Failed to create user." },
+        { success: false, message: "Failed to create user." },
         { status: 500 }
       );
     }
@@ -70,7 +83,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.log("Error in user registration:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to register user." },
+      { success: false, message: "Failed to register user." },
       { status: 500 }
     );
   }

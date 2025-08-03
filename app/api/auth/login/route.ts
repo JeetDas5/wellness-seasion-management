@@ -3,27 +3,43 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import { authValidationSchemas, validateForm, sanitizeFormData, createServerValidationResponse } from "@/utils/validation";
 
 export async function POST(request: NextRequest) {
   await connectDB();
   try {
-    const { email, password } = await request.json();
-    if (!email || !password) {
+    const body = await request.json();
+    const { email, password } = body;
+
+    // Sanitize input data
+    const sanitizedData = sanitizeFormData({ email, password });
+
+    // Validate input using the same schema as client-side
+    const validation = validateForm(sanitizedData, authValidationSchemas.login);
+    if (!validation.isValid) {
       return NextResponse.json(
-        { success: false, error: "Email and password are required." },
+        createServerValidationResponse(validation.errors),
         { status: 400 }
       );
     }
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: sanitizedData.email.toLowerCase() });
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "User does not exist." },
+        { 
+          success: false, 
+          message: "No account found with this email address",
+          errors: { email: "No account found with this email address" }
+        },
         { status: 400 }
       );
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(sanitizedData.password, user.password);
     if (!isPasswordValid) {
-      return NextResponse.json({ success: false, error: "Invalid password." }, { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        message: "Incorrect password",
+        errors: { password: "Incorrect password" }
+      }, { status: 400 });
     }
 
     const token = generateToken(user._id);
@@ -55,7 +71,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.log("Error in user login:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to login user." },
+      { success: false, message: "Failed to login user." },
       { status: 500 }
     );
   }

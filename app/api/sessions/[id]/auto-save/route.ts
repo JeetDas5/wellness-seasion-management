@@ -3,6 +3,7 @@ import Session from "@/models/Session";
 import { getUser } from "@/utils/getUser";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { sanitizeFormData } from "@/utils/validation";
 
 export async function POST(
   request: NextRequest,
@@ -47,6 +48,13 @@ export async function POST(
       }, { status: 403 });
     }
 
+    // Sanitize input data for auto-save (more lenient than full validation)
+    const sanitizedData = sanitizeFormData({ 
+      title: title || session.title, 
+      tags: Array.isArray(tags) ? tags : session.tags || [], 
+      json_file_url: json_file_url !== undefined ? json_file_url : session.json_file_url || ''
+    });
+
     // Prepare update data for auto-save
     const updateData: Partial<{
       title: string;
@@ -55,17 +63,17 @@ export async function POST(
     }> = {};
     
     if (title !== undefined) {
-      updateData.title = title.trim() || session.title;
+      updateData.title = sanitizedData.title || session.title;
     }
 
     if (tags !== undefined) {
-      updateData.tags = Array.isArray(tags) ? tags.filter(tag => tag.trim()) : session.tags;
+      updateData.tags = sanitizedData.tags.filter(tag => tag.trim());
     }
 
     if (json_file_url !== undefined) {
       // For auto-save, we're more lenient with URL validation
       // We'll save whatever is provided and let the user fix it later
-      updateData.json_file_url = json_file_url?.trim() || '';
+      updateData.json_file_url = sanitizedData.json_file_url;
     }
 
     // Auto-save should not change the status - keep existing status

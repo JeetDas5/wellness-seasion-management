@@ -3,6 +3,7 @@ import Session from "@/models/Session";
 import { getUser } from "@/utils/getUser";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { sessionValidationSchema, validateForm, sanitizeFormData, createServerValidationResponse } from "@/utils/validation";
 
 export async function PUT(
   request: NextRequest,
@@ -47,7 +48,23 @@ export async function PUT(
       }, { status: 403 });
     }
 
-    // Validate fields if provided
+    // Sanitize input data
+    const sanitizedData = sanitizeFormData({ 
+      title: title || session.title, 
+      tags: Array.isArray(tags) ? tags : session.tags || [], 
+      json_file_url: json_file_url !== undefined ? json_file_url : session.json_file_url || ''
+    });
+
+    // Validate input using the same schema as client-side
+    const validation = validateForm(sanitizedData, sessionValidationSchema);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        createServerValidationResponse(validation.errors),
+        { status: 400 }
+      );
+    }
+
+    // Prepare update data
     const updateData: Partial<{
       title: string;
       tags: string[];
@@ -56,35 +73,15 @@ export async function PUT(
     }> = {};
     
     if (title !== undefined) {
-      if (!title || !title.trim()) {
-        return NextResponse.json({
-          success: false,
-          message: "Title is required",
-          errors: { title: "Title is required" }
-        }, { status: 400 });
-      }
-      updateData.title = title.trim();
+      updateData.title = sanitizedData.title;
     }
 
     if (tags !== undefined) {
-      updateData.tags = Array.isArray(tags) ? tags.filter(tag => tag.trim()) : [];
+      updateData.tags = sanitizedData.tags.filter(tag => tag.trim());
     }
 
     if (json_file_url !== undefined) {
-      if (json_file_url && json_file_url.trim()) {
-        try {
-          new URL(json_file_url);
-          updateData.json_file_url = json_file_url.trim();
-        } catch {
-          return NextResponse.json({
-            success: false,
-            message: "Invalid JSON file URL",
-            errors: { json_file_url: "Please provide a valid URL" }
-          }, { status: 400 });
-        }
-      } else {
-        updateData.json_file_url = '';
-      }
+      updateData.json_file_url = sanitizedData.json_file_url;
     }
 
     if (status !== undefined) {

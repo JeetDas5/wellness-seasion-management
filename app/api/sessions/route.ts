@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/db";
 import Session from "@/models/Session";
 import { getUser } from "@/utils/getUser";
 import { NextRequest, NextResponse } from "next/server";
+import { sessionValidationSchema, validateForm, sanitizeFormData, createServerValidationResponse } from "@/utils/validation";
 
 export async function GET(request: NextRequest) {
   await connectDB();
@@ -51,26 +52,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, tags, json_file_url, status } = body;
 
-    // Validate required fields
-    if (!title || !title.trim()) {
-      return NextResponse.json({
-        success: false,
-        message: "Title is required",
-        errors: { title: "Title is required" }
-      }, { status: 400 });
-    }
+    // Sanitize input data
+    const sanitizedData = sanitizeFormData({ 
+      title, 
+      tags: Array.isArray(tags) ? tags : [], 
+      json_file_url: json_file_url || '' 
+    });
 
-    // Validate JSON URL if provided
-    if (json_file_url && json_file_url.trim()) {
-      try {
-        new URL(json_file_url);
-      } catch {
-        return NextResponse.json({
-          success: false,
-          message: "Invalid JSON file URL",
-          errors: { json_file_url: "Please provide a valid URL" }
-        }, { status: 400 });
-      }
+    // Validate input using the same schema as client-side
+    const validation = validateForm(sanitizedData, sessionValidationSchema);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        createServerValidationResponse(validation.errors),
+        { status: 400 }
+      );
     }
 
     // Validate status
@@ -84,9 +79,9 @@ export async function POST(request: NextRequest) {
 
     const session = new Session({
       userId,
-      title: title.trim(),
-      tags: Array.isArray(tags) ? tags.filter(tag => tag.trim()) : [],
-      json_file_url: json_file_url?.trim() || '',
+      title: sanitizedData.title,
+      tags: sanitizedData.tags.filter(tag => tag.trim()),
+      json_file_url: sanitizedData.json_file_url,
       status: status || 'draft'
     });
 

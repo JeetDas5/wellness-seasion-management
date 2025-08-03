@@ -5,11 +5,13 @@ interface InputProps {
   type?: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   error?: string;
   required?: boolean;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  autoComplete?: string;
 }
 
 export default function Input({
@@ -17,11 +19,13 @@ export default function Input({
   type = 'text',
   value,
   onChange,
+  onBlur,
   error,
   required = false,
   placeholder,
   disabled = false,
   className = '',
+  autoComplete,
 }: InputProps) {
   const inputId = `input-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
@@ -39,9 +43,11 @@ export default function Input({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         placeholder={placeholder}
         disabled={disabled}
         required={required}
+        autoComplete={autoComplete}
         className={`
           w-full px-3 py-3 sm:py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base sm:text-sm touch-manipulation
           ${error 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Input, LoadingSpinner, ErrorMessage } from '@/components/ui';
 import AutoSaveIndicator from '@/components/ui/AutoSaveIndicator';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { useSessionFormValidation } from '@/hooks/useFormValidation';
 import { handleApiError, apiRequest, formatValidationErrors } from '@/utils/errorHandling';
 import toast from 'react-hot-toast';
 
@@ -20,30 +21,33 @@ interface SessionEditorProps {
   onPublish?: (data: SessionData) => Promise<void>;
 }
 
-interface FormErrors {
-  [key: string]: string | undefined;
-  title?: string;
-  tags?: string;
-  json_file_url?: string;
-}
-
 export default function SessionEditor({
   sessionId,
   initialData,
   onSave,
   onPublish
 }: SessionEditorProps) {
-  const [formData, setFormData] = useState<SessionData>({
+  const [tagsInput, setTagsInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // Use the new validation hook
+  const {
+    formData,
+    errors,
+    isValid,
+    handleFieldChange,
+    handleFieldBlur,
+    validateForm,
+    markAllTouched,
+    setFieldError,
+    setFormData
+  } = useSessionFormValidation({
     title: '',
     tags: [],
     json_file_url: ''
   });
-  
-  const [tagsInput, setTagsInput] = useState('');
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
 
   // Auto-save functionality
   const autoSaveCallback = useCallback(async (data: SessionData) => {
@@ -95,14 +99,15 @@ export default function SessionEditor({
   // Initialize form data
   useEffect(() => {
     if (initialData) {
-      setFormData({
+      const newFormData = {
         title: initialData.title || '',
         tags: initialData.tags || [],
         json_file_url: initialData.json_file_url || ''
-      });
+      };
+      setFormData(newFormData);
       setTagsInput(initialData.tags?.join(', ') || '');
     }
-  }, [initialData]);
+  }, [initialData, setFormData]);
 
   const fetchSessionData = useCallback(async () => {
     if (!sessionId) return;
@@ -113,11 +118,12 @@ export default function SessionEditor({
       
       if (data.success && data.session) {
         const session = data.session;
-        setFormData({
+        const newFormData = {
           title: session.title,
           tags: session.tags || [],
           json_file_url: session.json_file_url || ''
-        });
+        };
+        setFormData(newFormData);
         setTagsInput(session.tags?.join(', ') || '');
       } else {
         throw new Error(data.message || 'Failed to load session data');
@@ -129,7 +135,7 @@ export default function SessionEditor({
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, setFormData]);
 
   // Fetch session data if editing existing session
   useEffect(() => {
@@ -138,56 +144,14 @@ export default function SessionEditor({
     }
   }, [sessionId, initialData, fetchSessionData]);
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    // Validate title
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.trim().length < 3) {
-      newErrors.title = 'Title must be at least 3 characters long';
-    } else if (formData.title.trim().length > 100) {
-      newErrors.title = 'Title must be less than 100 characters';
-    }
-
-    // Validate JSON URL if provided
-    if (formData.json_file_url.trim()) {
-      try {
-        const url = new URL(formData.json_file_url.trim());
-        if (!url.protocol.startsWith('http')) {
-          newErrors.json_file_url = 'URL must start with http:// or https://';
-        }
-      } catch {
-        newErrors.json_file_url = 'Please provide a valid URL';
-      }
-    }
-
-    // Validate tags
-    if (formData.tags.length > 10) {
-      newErrors.tags = 'Maximum 10 tags allowed';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleInputChange = (field: keyof SessionData, value: string) => {
+    handleFieldChange(field, value);
+    
+    // Trigger auto-save with updated data
     const newFormData = {
       ...formData,
       [field]: value
     };
-    
-    setFormData(newFormData);
-    
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: undefined
-      }));
-    }
-    
-    // Trigger auto-save with updated data
     triggerAutoSave(newFormData);
   };
 
@@ -201,26 +165,20 @@ export default function SessionEditor({
       .filter(tag => tag.length > 0)
       .slice(0, 10); // Limit to 10 tags
     
+    handleFieldChange('tags', tags);
+    
+    // Trigger auto-save with updated data
     const newFormData = {
       ...formData,
       tags
     };
-    
-    setFormData(newFormData);
-    
-    // Clear tags error when user starts typing
-    if (errors.tags) {
-      setErrors(prev => ({
-        ...prev,
-        tags: undefined
-      }));
-    }
-    
-    // Trigger auto-save with updated data
     triggerAutoSave(newFormData);
   };
 
   const handleSaveAsDraft = async () => {
+    // Mark all fields as touched to show validation errors
+    markAllTouched();
+    
     if (!validateForm()) {
       const errorMessage = formatValidationErrors(
         Object.fromEntries(
@@ -264,6 +222,9 @@ export default function SessionEditor({
   };
 
   const handlePublish = async () => {
+    // Mark all fields as touched to show validation errors
+    markAllTouched();
+    
     if (!validateForm()) {
       const errorMessage = formatValidationErrors(
         Object.fromEntries(
@@ -319,10 +280,12 @@ export default function SessionEditor({
           label="Session Title"
           value={formData.title}
           onChange={(value) => handleInputChange('title', value)}
+          onBlur={() => handleFieldBlur('title')}
           error={errors.title}
           required
           placeholder="Enter a descriptive title for your session"
           className="w-full"
+          disabled={isLoading}
         />
 
         <div className="mb-4">
@@ -370,9 +333,11 @@ export default function SessionEditor({
           type="url"
           value={formData.json_file_url}
           onChange={(value) => handleInputChange('json_file_url', value)}
+          onBlur={() => handleFieldBlur('json_file_url')}
           error={errors.json_file_url}
           placeholder="https://example.com/session-data.json"
           className="w-full"
+          disabled={isLoading}
         />
 
         {/* Auto-save indicator - only show for existing sessions */}
@@ -388,7 +353,7 @@ export default function SessionEditor({
             variant="secondary"
             onClick={handleSaveAsDraft}
             loading={isSaving}
-            disabled={isPublishing}
+            disabled={isPublishing || isLoading}
             className="flex-1 order-2 sm:order-1"
           >
             Save as Draft
@@ -398,7 +363,7 @@ export default function SessionEditor({
             variant="primary"
             onClick={handlePublish}
             loading={isPublishing}
-            disabled={isSaving}
+            disabled={isSaving || isLoading || !isValid}
             className="flex-1 order-1 sm:order-2"
           >
             Publish Session
